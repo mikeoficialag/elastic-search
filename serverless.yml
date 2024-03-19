@@ -1,0 +1,80 @@
+service: myServerlessProject2
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  profile: serverlessUser
+  region: us-east-1
+  environment:
+    tableName: ${self:custom.tableName}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - "es:ESHttpGet"
+            - "es:ESHttpHead"
+            - "es:ESHttpPost"
+            - "es:ESHttpDelete"
+            - "dynamodb:*"
+          Resource: '*'
+    
+
+
+plugins:
+  - serverless-webpack
+
+package:
+  individually: true
+
+custom:
+  tableName: player-points
+
+functions:
+  getPlayerScore:
+    handler: lambdas/endpoints/getPlayerScore.handler
+    events:
+      - httpApi:
+          path: /get-player-score/{ID}
+          method: GET
+          cors: true
+
+  createPlayerScore:
+    handler: lambdas/endpoints/createPlayerScore.handler
+    events:
+      - httpApi:
+          path: /create-player-score/{ID}
+          method: POST
+          cors: true
+
+  sendFunction:
+    handler: lambdas/elastic_search/send.handler
+    events:
+      - httpApi:
+          path: /send-elastic
+          method: POST
+          cors: true
+
+  getElasticFunction:
+    handler: lambdas/elastic_search/get.handler
+    events:
+      - httpApi:
+          path: /get-elastic
+          method: GET
+          cors: true
+    
+resources:
+  Resources:
+    myDynamoDbTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          - AttributeName: ID
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ID
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
